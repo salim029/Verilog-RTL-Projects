@@ -7,3 +7,8 @@ Tools Used:
 - VS Code
 - Icarus Verilog
 - GTKWave
+
+
+## Simulation Waveform
+
+![Simulation Waveform](TrafficLight controller waveform.png)
