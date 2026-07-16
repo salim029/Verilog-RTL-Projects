@@ -35,3 +35,17 @@ This project implements the four basic types of shift registers using Verilog HD
 - Verilog RTL Coding
 - Testbench Development
 - Functional Simulation
+
+## Simulation Results
+
+### SISO Register
+![SISO Waveform](siso_waveform.png)
+
+### SIPO Register
+![SIPO Waveform](sipo_waveform.png)
+
+### PISO Register
+![PISO Waveform](piso_waveform.png)
+
+### PIPO Register
+![PIPO Waveform](pipo_waveform.png)
