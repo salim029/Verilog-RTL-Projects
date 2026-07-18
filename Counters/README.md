@@ -52,3 +52,29 @@ A modified ring counter where the inverted output of the last flip-flop is fed b
 - Verilog RTL Coding
 - Testbench Development
 - Functional Simulation
+
+  ## Simulation Results
+
+### Up Counter
+
+![Up Counter Waveform](up_counter waveform.png)
+
+### Down Counter
+
+![Down Counter Waveform](down_counter waveform.png)
+
+### Up/Down Counter
+
+![UpDown Counter Waveform](updown_counter waveform.png)
+
+### Mod-N Counter
+
+![Mod-N Counter Waveform](modn_counter waveform.png)
+
+### Ring Counter
+
+![Ring Counter Waveform](ring_counter waveform.png)
+
+### Johnson Counter
+
+![Johnson Counter Waveform](johnson_counter waveform.png)
