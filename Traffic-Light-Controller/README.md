@@ -67,4 +67,4 @@ The waveform below verifies the correct operation of the FSM-based Traffic Light
 
 ### Traffic Light Controller Waveform
 
-![Traffic Light Controller Waveform](TrafficLight controller waveform.png)
+![Traffic Light Controller Waveform](TrafficLight_controller_waveform.png)
