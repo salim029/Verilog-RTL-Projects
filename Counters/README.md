@@ -53,7 +53,7 @@ A modified ring counter where the inverted output of the last flip-flop is fed b
 - Testbench Development
 - Functional Simulation
 
-  ## Simulation Results
+## Simulation Results
 
 ### Up Counter
 
