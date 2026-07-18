@@ -60,3 +60,11 @@ The traffic light outputs are encoded as:
 - Verilog RTL Coding
 - Testbench Development
 - Functional Simulation using Icarus Verilog and GTKWave
+
+## Simulation Results
+
+The waveform below verifies the correct operation of the FSM-based Traffic Light Controller. After reset, the controller starts in the **RED** state and transitions through **GREEN** and **YELLOW** on each rising edge of the clock before repeating the sequence.
+
+### Traffic Light Controller Waveform
+
+![Traffic Light Controller Waveform](TrafficLight controller waveform.png)
