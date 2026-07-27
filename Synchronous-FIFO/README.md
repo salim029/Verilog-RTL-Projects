@@ -80,7 +80,7 @@ The FIFO is verified using a dedicated testbench, simulated in both **Vivado** a
 
 ## Simulation Waveform
 
-![FIFO Waveform](waveform.png)
+![FIFO Waveform](synch_fifo_waveform.png)
 
 ---
 
