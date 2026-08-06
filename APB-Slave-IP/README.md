@@ -1,214 +1,277 @@
-APB Slave IP (AMBA APB3/4 Compatible) – RTL Design in Verilog
-Overview
+# APB Slave IP (AMBA APB3/4 Compatible) – RTL Design in Verilog
 
-This project implements a parameterizable AMBA APB (Advanced Peripheral Bus) Slave IP completely in Verilog HDL, designed to emulate a realistic memory-mapped peripheral used inside modern SoCs and microcontrollers. The design follows the APB transaction protocol by implementing the IDLE → SETUP → ACCESS state machine, supporting configurable wait-state insertion, register access control, byte-enable writes, and comprehensive error detection.
+## Overview
 
-Unlike a basic APB memory example, this implementation focuses on features that are commonly present in real hardware peripherals. The slave contains a configurable register bank with different register access permissions, programmable wait cycles, byte-wise write support through PSTRB, protocol-compliant handshaking using PREADY, and transaction error reporting through PSLVERR.
+This project implements a **parameterizable AMBA APB (Advanced Peripheral Bus) Slave IP** completely in **Verilog HDL**, designed to emulate a realistic memory-mapped peripheral used in modern SoCs and microcontroller-based systems.
 
-The IP is fully parameterized, allowing the address width, data width, register count, and wait-state latency to be modified without changing the RTL, making the design reusable across multiple applications.
+The design follows the **APB protocol timing** by implementing the complete **IDLE → SETUP → ACCESS** transaction flow using a Finite State Machine (FSM). Along with standard APB read and write operations, the slave supports **programmable wait-state insertion**, **multiple register access types**, **byte-enable writes**, and **robust error detection**, making it significantly closer to a practical hardware peripheral than a basic APB memory example.
 
-Architecture
+Unlike a simple register bank, this implementation demonstrates how real hardware peripherals behave by incorporating **Read/Write (RW)**, **Read-Only (RO)**, and **Write-One-to-Clear (W1C)** registers, along with hardware-generated events that interact with software-controlled registers.
 
-The APB Slave consists of four major functional blocks:
+The design is fully parameterized, allowing the **address width**, **data width**, **number of registers**, and **wait-state latency** to be configured without modifying the RTL source, making the IP reusable for different applications.
 
-1. APB Protocol Controller (Finite State Machine)
+---
 
-The communication protocol is controlled using a three-state Finite State Machine (FSM).
+## Features
 
-IDLE
-Waits for the master to assert PSEL.
-SETUP
-Captures the transaction information.
-ACCESS
-Performs the read or write operation.
-Holds the transaction until PREADY is asserted.
-Supports programmable wait-state insertion.
+- ✅ AMBA APB3/4 compatible slave interface
+- ✅ Parameterizable Address Width (`ADDR_WIDTH`)
+- ✅ Parameterizable Data Width (`DATA_WIDTH`)
+- ✅ Configurable Register Count (`NUM_REG`)
+- ✅ Programmable Wait-State Generator (`WAIT_CYCLES`)
+- ✅ APB FSM (IDLE → SETUP → ACCESS)
+- ✅ Memory-Mapped Register Bank
+- ✅ Multiple Register Types
+  - Read/Write (RW)
+  - Read-Only (RO)
+  - Write-One-to-Clear (W1C)
+- ✅ Byte-wise Write Support using **PSTRB**
+- ✅ Address Alignment Checking
+- ✅ Invalid Address Detection
+- ✅ PSLVERR Generation
+- ✅ PREADY Handshake Logic
+- ✅ Hardware Event Generation
+- ✅ Self-checking Verilog Testbench
 
-This FSM accurately models the APB protocol timing and ensures that transactions only complete when the slave is ready.
+---
 
-2. Configurable Register Bank
+## Architecture
 
-The slave implements a parameterized register bank whose size is controlled by NUM_REG.
+The APB Slave is divided into several functional blocks.
 
-Each register can have a different access policy.
+### 1. APB Protocol Controller
 
-Current implementation includes:
+The protocol controller is implemented using a **three-state Finite State Machine (FSM)**.
 
-Register	Type	Reset Value	Description
-REG0	Read/Write	0x00000000	General purpose RW register
-REG1	Read Only	0xDEADBEEF	Hardware-controlled register
-REG2	Write-One-to-Clear	0x0000000F	Interrupt/status style register
-REG3	Read/Write	0xFFFFFFFF	General purpose RW register
+| State | Function |
+|--------|----------|
+| **IDLE** | Waits for the master to assert `PSEL` |
+| **SETUP** | Captures transaction information |
+| **ACCESS** | Performs read/write operation and waits until `PREADY` becomes high |
 
-This demonstrates how different types of peripheral registers are implemented inside real hardware IPs.
+This FSM accurately models APB protocol timing while supporting configurable wait states.
 
-3. Wait-State Generator
+---
 
-The slave supports programmable latency using the parameter:
+### 2. Configurable Register Bank
 
+The slave implements a parameterized register bank whose size is controlled using:
+
+```verilog
+NUM_REG
+```
+
+Each register can have an independent access policy.
+
+| Register | Type | Reset Value | Description |
+|----------|------|-------------|-------------|
+| REG0 | Read/Write | `0x00000000` | General purpose register |
+| REG1 | Read-Only | `0xDEADBEEF` | Hardware-controlled register |
+| REG2 | Write-One-to-Clear | `0x0000000F` | Interrupt / Status register |
+| REG3 | Read/Write | `0xFFFFFFFF` | General purpose register |
+
+This closely resembles register maps used inside commercial peripheral IPs.
+
+---
+
+### 3. Wait-State Generator
+
+The slave supports programmable latency through
+
+```verilog
 WAIT_CYCLES
+```
 
-During the ACCESS phase, the slave increments an internal wait counter before asserting PREADY.
+During the ACCESS phase, an internal wait counter delays the assertion of **PREADY** until the configured number of wait cycles has elapsed.
 
-This allows the IP to emulate slower peripherals that require multiple clock cycles before completing a transaction.
+- `WAIT_CYCLES = 0` → Immediate response
+- `WAIT_CYCLES > 0` → Delayed response with inserted wait states
 
-Setting
+This allows the IP to emulate slow peripherals that require multiple clock cycles before completing a transaction.
 
-WAIT_CYCLES = 0
+---
 
-makes the slave respond immediately,
+### 4. Address Decoder
 
-while larger values insert additional wait states exactly as expected in APB systems.
+Instead of decoding every address individually, the incoming APB address is converted into a register index.
 
-4. Address Decoder
-
-Instead of decoding every address individually, the slave converts the incoming byte address into a register index using
-
+```verilog
 reg_index = PADDR[ADDR_WIDTH-1:2];
+```
 
-This makes the design scalable as the number of registers increases.
+The decoder also determines the register type (RW, RO or W1C), allowing the write controller to process every register differently.
 
-The decoder also determines the register access type (RW, RO or W1C) which controls how every transaction is processed.
+---
 
-Register Access Types
-Read/Write (RW)
+## Register Access Modes
 
-Normal memory-mapped register.
+### Read/Write (RW)
 
-Supports both read and write operations.
+- Supports both read and write operations.
+- Writes are performed according to the active **PSTRB** bits.
+- Only the selected bytes are modified.
 
-Writes are performed using byte strobes so only the selected bytes are modified.
+---
 
-Read Only (RO)
+### Read-Only (RO)
 
-Writes to this register are ignored.
+- Software writes are ignored.
+- Register contents are updated only by hardware.
+- In this implementation:
 
-The register is updated only by internal hardware logic.
+```text
+REG1 = 0xDEADBEEF
+```
 
-In this implementation,
+is continuously driven by internal hardware logic.
 
-REG1 = 32'hDEADBEEF
+---
 
-is continuously generated by hardware.
+### Write-One-to-Clear (W1C)
 
-Write-One-to-Clear (W1C)
+This register behaves similarly to interrupt status registers found in real SoCs.
 
-This register behaves like interrupt status registers used in real SoCs.
+Writing a **logic '1'** clears the corresponding bit.
 
-Writing a logic '1' clears the corresponding bit.
-
-Writing '0' leaves the bit unchanged.
-
-Example:
-
-Current Register : 00001111
-
-Write Data       : 00000101
-
-Result           : 00001010
-
-In this design, a hardware event automatically sets the lower four bits, while software clears them through APB writes.
-
-Byte Write Support (PSTRB)
-
-The slave supports APB byte strobes through PSTRB.
-
-Each bit of PSTRB controls one byte of the 32-bit data bus.
-
-Only the selected bytes are updated.
-
-This allows:
-
-byte writes
-half-word writes
-full-word writes
-
-without modifying the remaining bytes.
-
-Error Detection
-
-The slave performs multiple checks before completing a transaction.
-
-Misaligned Address Detection
-
-Addresses not aligned to 32-bit boundaries are rejected.
+Writing **logic '0'** leaves the bit unchanged.
 
 Example:
 
-0x00000002
+| Current Value | Write Data | Result |
+|--------------|------------|--------|
+| 00001111 | 00000101 | 00001010 |
 
-asserts
+A hardware event periodically sets the lower four bits, while software clears them through APB writes.
 
+---
+
+## Byte Write Support (PSTRB)
+
+The slave supports APB byte strobes through **PSTRB**.
+
+Each bit of `PSTRB` controls one byte of the 32-bit data bus.
+
+This enables:
+
+- Full-word writes
+- Half-word writes
+- Byte writes
+
+without affecting the remaining bytes.
+
+---
+
+## Error Detection
+
+The slave validates every APB transaction before executing it.
+
+### Misaligned Address Detection
+
+Addresses that are not 32-bit aligned generate
+
+```text
 PSLVERR = 1
-Invalid Address Detection
+```
 
-Transactions outside the implemented register space also generate
+Example:
 
+```text
+0x00000002
+```
+
+---
+
+### Invalid Address Detection
+
+Transactions outside the implemented register space also assert
+
+```text
 PSLVERR
+```
 
-For example,
+Example:
 
+```text
 0x00000020
+```
 
-is outside the register bank and is reported as an invalid access.
+---
 
-Read and Write Control
+## Read & Write Control
 
-Read and write operations are generated only during a valid ACCESS phase.
+Read and write operations are enabled only during a valid ACCESS phase.
 
+```verilog
 write_en = PSEL & PENABLE & PWRITE & PREADY & !PSLVERR;
+```
+
+```verilog
 read_en = PSEL & PENABLE & !PWRITE & PREADY & !PSLVERR;
+```
 
-This guarantees that transactions occur only after
+This guarantees that every transaction is executed only after:
 
-protocol timing is satisfied,
-wait states are complete,
-and no address errors are present.
-Hardware Event Demonstration
+- APB protocol timing is satisfied
+- Wait states are completed
+- Address validation succeeds
 
-To demonstrate hardware/software interaction,
+---
 
-the slave internally generates a hardware event.
+## Hardware Event Demonstration
 
-Whenever the controller returns to the IDLE state,
+To simulate real hardware behavior, the slave internally generates a hardware event.
 
-the hardware automatically sets
+Whenever the controller returns to the **IDLE** state, the hardware automatically sets
 
+```text
 REG2[3:0]
+```
 
-Software then clears those bits using the Write-One-to-Clear mechanism.
+Software then clears these bits using the **Write-One-to-Clear** mechanism.
 
-This closely resembles interrupt status registers found in real embedded peripherals.
+This demonstrates hardware/software interaction commonly seen in interrupt status registers.
 
-Verification
+---
 
-A dedicated Verilog testbench was developed to verify all major functionalities of the APB Slave IP.
+## Verification
 
-The testbench performs:
+The APB Slave IP is verified using a dedicated Verilog testbench.
 
-Clock generation
-Reset generation
-APB read transactions
-APB write transactions
-Wait-state verification
-Read-only register protection
-Write-One-to-Clear verification
-Byte strobe (PSTRB) verification
-Misaligned address testing
-Invalid address testing
-PSLVERR verification
-PREADY handshake verification
+The verification covers:
 
-Simulation outputs are checked using PASS/FAIL messages for each feature.
+- Reset functionality
+- APB Read Transactions
+- APB Write Transactions
+- Wait-State Generation
+- Read-Only Register Protection
+- Write-One-to-Clear Operation
+- Byte Enable (PSTRB) Verification
+- Misaligned Address Detection
+- Invalid Address Detection
+- PSLVERR Verification
+- PREADY Handshake Verification
 
-Tools Used
-Verilog HDL
-Icarus Verilog (Functional Simulation)
-GTKWave (Waveform Analysis)
-Xilinx Vivado 2025.1 (RTL Elaboration & RTL Schematic Generation)
-Repository Contents
-APB Slave RTL (apb.v)
-Self-checking Testbench (tb_apb.v)
-Simulation Waveform (waveform.png)
-Vivado RTL Schematic (rtl_schematic.png)
-Project Documentation
+Simulation outputs are displayed as **PASS/FAIL** messages to validate each feature.
+
+---
+
+## Tools Used
+
+- **Verilog HDL**
+- **Icarus Verilog** – Functional Simulation
+- **GTKWave** – Waveform Analysis
+- **Xilinx Vivado 2025.1** – RTL Elaboration & RTL Schematic Generation
+
+---
+
+## Project Outputs
+
+The repository includes:
+
+- RTL Source Code
+- Self-checking Testbench
+- Simulation Waveform (`waveform.png`)
+- Vivado RTL Schematic (`rtl_schematic.png`)
+- Documentation
+
+The waveform demonstrates successful APB read/write transactions, wait-state insertion, PREADY handshaking, register operations, and PSLVERR generation. The RTL schematic generated in Vivado illustrates the synthesized register bank, FSM, address decoder, and protocol control logic implemented in hardware.
