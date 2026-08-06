@@ -270,8 +270,8 @@ The repository includes:
 
 - RTL Source Code
 - Self-checking Testbench
-- Simulation Waveform (`waveform.png`)
-- Vivado RTL Schematic (`rtl_schematic.png`)
+- Simulation Waveform (`apb_slave_waveform.png`)
+- Vivado RTL Schematic (`apb_slave_rtl_schematic.png`)
 - Documentation
 
 The waveform demonstrates successful APB read/write transactions, wait-state insertion, PREADY handshaking, register operations, and PSLVERR generation. The RTL schematic generated in Vivado illustrates the synthesized register bank, FSM, address decoder, and protocol control logic implemented in hardware.
